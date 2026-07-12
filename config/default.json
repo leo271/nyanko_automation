@@ -1,0 +1,8 @@
+{
+  "window_title_keywords": ["iPhone", "Mirroring", "ミラーリング"],
+  "snippets_path": "config/snippets.json",
+  "screenshot_path": "assets/screenshots/latest.png",
+  "dry_run": true,
+  "action_pause_seconds": 0.15,
+  "default_cycles": 1
+}

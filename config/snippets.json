@@ -1,0 +1,161 @@
+{
+  "start": "check_energy",
+  "snippets": [
+    {
+      "id": "check_energy",
+      "name": "統率力確認&統率力回復",
+      "description": "マップ画面で統率力を確認し、不足している場合は回復導線を処理する。",
+      "detect": {
+        "template": "assets/templates/check_energy.png",
+        "threshold": 0.88,
+        "required": false
+      },
+      "steps": [
+        {
+          "type": "note",
+          "label": "TODO: 統率力表示または回復ボタンのテンプレートを登録する"
+        },
+        {
+          "type": "tap",
+          "label": "統率力回復ボタン",
+          "enabled": false,
+          "x": null,
+          "y": null,
+          "coordinate_space": "window"
+        },
+        {
+          "type": "tap",
+          "label": "回復確定",
+          "enabled": false,
+          "x": null,
+          "y": null,
+          "coordinate_space": "window"
+        },
+        {
+          "type": "wait",
+          "label": "回復後の画面安定待ち",
+          "seconds": 0.5
+        }
+      ],
+      "next": "start_battle"
+    },
+    {
+      "id": "start_battle",
+      "name": "戦闘開始",
+      "description": "周回対象ステージを選び、戦闘開始まで進める。",
+      "detect": {
+        "template": "assets/templates/start_battle.png",
+        "threshold": 0.88,
+        "required": false
+      },
+      "steps": [
+        {
+          "type": "tap",
+          "label": "周回対象ステージ",
+          "enabled": false,
+          "x": null,
+          "y": null,
+          "coordinate_space": "window"
+        },
+        {
+          "type": "tap",
+          "label": "戦闘開始ボタン",
+          "enabled": false,
+          "x": null,
+          "y": null,
+          "coordinate_space": "window"
+        },
+        {
+          "type": "wait",
+          "label": "戦闘画面への遷移待ち",
+          "seconds": 1.0
+        }
+      ],
+      "next": "deploy_units"
+    },
+    {
+      "id": "deploy_units",
+      "name": "キャラクター出動",
+      "description": "戦闘中に指定キャラクターを出す。出撃タイミングや回数はあとで調整する。",
+      "detect": {
+        "template": "assets/templates/deploy_units.png",
+        "threshold": 0.88,
+        "required": false
+      },
+      "steps": [
+        {
+          "type": "wait_for_template",
+          "label": "出撃可能状態待ち",
+          "enabled": false,
+          "template": "assets/templates/deploy_ready.png",
+          "threshold": 0.88,
+          "timeout_seconds": 10.0
+        },
+        {
+          "type": "tap",
+          "label": "キャラクター1",
+          "enabled": false,
+          "x": null,
+          "y": null,
+          "coordinate_space": "window"
+        },
+        {
+          "type": "tap",
+          "label": "キャラクター2",
+          "enabled": false,
+          "x": null,
+          "y": null,
+          "coordinate_space": "window"
+        },
+        {
+          "type": "wait",
+          "label": "戦闘進行待ち",
+          "seconds": 5.0
+        }
+      ],
+      "next": "finish_battle"
+    },
+    {
+      "id": "finish_battle",
+      "name": "戦闘終了→マップ帰還",
+      "description": "戦闘終了表示を待ち、報酬画面などを進めてマップへ戻る。",
+      "detect": {
+        "template": "assets/templates/finish_battle.png",
+        "threshold": 0.88,
+        "required": false
+      },
+      "steps": [
+        {
+          "type": "wait_for_template",
+          "label": "戦闘終了表示待ち",
+          "enabled": false,
+          "template": "assets/templates/battle_finished.png",
+          "threshold": 0.88,
+          "timeout_seconds": 90.0
+        },
+        {
+          "type": "tap",
+          "label": "OK/次へ",
+          "enabled": false,
+          "x": null,
+          "y": null,
+          "coordinate_space": "window"
+        },
+        {
+          "type": "tap",
+          "label": "マップ帰還",
+          "enabled": false,
+          "x": null,
+          "y": null,
+          "coordinate_space": "window"
+        },
+        {
+          "type": "wait",
+          "label": "マップ画面への帰還待ち",
+          "seconds": 1.0
+        }
+      ],
+      "next": "check_energy"
+    }
+  ]
+}
