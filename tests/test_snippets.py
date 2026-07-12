@@ -23,6 +23,7 @@ def test_default_snippet_cycle() -> None:
         "wait_after_battle_result",
         "detect_extra_stage",
         "return_to_map",
+        "wait_after_map_return",
         "detect_stamina_recover_available",
     ]
 

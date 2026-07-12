@@ -175,20 +175,41 @@ class RoutineEngine:
     def _evaluate_condition_snippet(self, snippet: Snippet) -> bool:
         color_probe = snippet.detect.get("color_probe")
         if self.runner.dry_run:
-            target = color_probe or snippet.detect.get("template")
+            target = (
+                color_probe
+                or snippet.detect.get("templates")
+                or snippet.detect.get("template")
+            )
             print(f"[dry-run] condition check {target} -> false")
             return False
 
         if color_probe:
             return self._evaluate_color_probe(color_probe)
 
+        templates = snippet.detect.get("templates")
+        threshold = float(snippet.detect.get("threshold", 0.88))
+        if templates:
+            results = []
+            for template_value in templates:
+                result = self._match_template(self._resolve_path(str(template_value)))
+                results.append(result)
+                score, scale, location, size = result
+                print(
+                    f"[condition] template={template_value} score={score:.3f} "
+                    f"threshold={threshold:.3f} scale={scale:.2f} "
+                    f"location={location[0]},{location[1]} size={size[0]}x{size[1]}"
+                )
+            matched = all(result[0] >= threshold for result in results)
+            print(f"[condition] templates matched={matched}")
+            return matched
+
         template = snippet.detect.get("template")
         if not template:
             raise ValueError(
-                f"condition snippet requires detect.template or detect.color_probe: {snippet.id}"
+                f"condition snippet requires detect.template, detect.templates, "
+                f"or detect.color_probe: {snippet.id}"
             )
 
-        threshold = float(snippet.detect.get("threshold", 0.88))
         score, scale, location, size = self._match_template(self._resolve_path(template))
         matched = score >= threshold
         print(

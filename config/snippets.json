@@ -65,7 +65,8 @@
           }
         ],
         "accept_extra_stage": "wait_battle_start",
-        "return_to_map": "detect_stamina_recover_available"
+        "return_to_map": "wait_after_map_return",
+        "wait_after_map_return": "detect_stamina_recover_available"
       }
     }
   ],
@@ -106,6 +107,18 @@
           "duration_seconds": 0.25,
           "coordinate_space": "window",
           "source_screenshot": "assets/screenshots/stage_select.PNG"
+        }
+      ]
+    },
+    {
+      "id": "wait_after_map_return",
+      "name": "マップ帰還後待機",
+      "description": "マップ帰還直後の画面描画とタップ受付が安定するまで待つ。",
+      "steps": [
+        {
+          "type": "wait",
+          "label": "マップ帰還後の安定待ち",
+          "seconds": 1.2
         }
       ]
     },
@@ -219,7 +232,7 @@
         {
           "type": "wait",
           "label": "戦闘開始待機",
-          "seconds": 4.0
+          "seconds": 3.5
         }
       ]
     },
@@ -231,7 +244,7 @@
         {
           "type": "wait",
           "label": "初期資金待ち",
-          "seconds": 1.5
+          "seconds": 1.2
         }
       ]
     },
@@ -265,7 +278,7 @@
         {
           "type": "wait",
           "label": "戦闘進行待ち",
-          "seconds": 5.0
+          "seconds": 4.5
         }
       ]
     },
@@ -275,7 +288,10 @@
       "description": "ドロップ報酬ダイアログが表示されているかだけ判定する。",
       "kind": "condition",
       "detect": {
-        "template": "assets/templates/packman/drop_reward_dialog.png",
+        "templates": [
+          "assets/templates/packman/drop_reward_top.png",
+          "assets/templates/packman/drop_reward_left.png"
+        ],
         "threshold": 0.82,
         "required": false,
         "source_screenshot": "assets/screenshots/battle_end_item_gain.PNG"
@@ -292,7 +308,7 @@
           "label": "ドロップ報酬表示を閉じる",
           "enabled": true,
           "x": 334,
-          "y": 258,
+          "y": 240,
           "duration_seconds": 0.25,
           "coordinate_space": "window",
           "source_screenshot": "assets/screenshots/battle_end_item_gain.PNG"
@@ -307,7 +323,7 @@
         {
           "type": "wait",
           "label": "報酬表示後の画面安定待ち",
-          "seconds": 0.5
+          "seconds": 0.4
         }
       ]
     },
@@ -336,7 +352,7 @@
         {
           "type": "wait",
           "label": "OK後の画面遷移待ち",
-          "seconds": 1.0
+          "seconds": 0.8
         }
       ]
     },
