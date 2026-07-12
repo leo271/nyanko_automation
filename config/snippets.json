@@ -116,7 +116,7 @@
         {
           "type": "wait",
           "label": "マップ帰還後の安定待ち",
-          "seconds": 1.2
+          "seconds": 1.0
         }
       ]
     },
@@ -230,7 +230,7 @@
         {
           "type": "wait",
           "label": "戦闘開始待機",
-          "seconds": 3.5
+          "seconds": 3.2
         }
       ]
     },
@@ -242,7 +242,7 @@
         {
           "type": "wait",
           "label": "初期資金待ち",
-          "seconds": 1.2
+          "seconds": 1.0
         }
       ]
     },
@@ -320,7 +320,7 @@
         {
           "type": "wait",
           "label": "報酬表示後の画面安定待ち",
-          "seconds": 0.4
+          "seconds": 0.3
         }
       ]
     },

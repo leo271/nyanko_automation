@@ -68,6 +68,14 @@ detect_stamina_recover_available
 
 実クリックを有効にする場合だけ `--live` を付けます。
 
+初回の戦闘開始ボタンを2回押してから、ログ保存付きで周回を開始する場合:
+
+```bash
+./scripts/run_packman.sh
+```
+
+デバッグ用スクリーンショットが必要な場合だけ、`run` または `run-snippet` に `--debug-screenshots` を付けます。
+
 ```bash
 uv run nyanko-auto run-snippet tap_battle_start --live
 uv run nyanko-auto run-snippet return_to_map --repeat 2 --live

@@ -112,6 +112,7 @@ def build_engine(args: argparse.Namespace, config: dict, registry, routine):
         root=ROOT,
         screenshot_path=resolve_root_path(config["screenshot_path"]),
         window=window,
+        debug_screenshots=bool(getattr(args, "debug_screenshots", False)),
     )
     return engine
 
@@ -174,6 +175,11 @@ def main() -> int:
         action="store_true",
         help="Execute enabled click/capture steps",
     )
+    run_parser.add_argument(
+        "--debug-screenshots",
+        action="store_true",
+        help="Save screenshots for false conditions and interruptions",
+    )
 
     snippet_parser = subparsers.add_parser(
         "run-snippet",
@@ -196,6 +202,11 @@ def main() -> int:
         "--live",
         action="store_true",
         help="Execute enabled click/capture steps",
+    )
+    snippet_parser.add_argument(
+        "--debug-screenshots",
+        action="store_true",
+        help="Save screenshots for false conditions",
     )
 
     args = parser.parse_args()

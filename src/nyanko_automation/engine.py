@@ -21,6 +21,7 @@ class RoutineEngine:
         root: Path,
         screenshot_path: Path,
         window: WindowInfo | None = None,
+        debug_screenshots: bool = False,
     ) -> None:
         self.registry = registry
         self.routine = routine
@@ -28,6 +29,7 @@ class RoutineEngine:
         self.root = root
         self.screenshot_path = screenshot_path
         self.window = window
+        self.debug_screenshots = debug_screenshots
         self.snippet_results: dict[str, bool | None] = {}
 
     def run(self, *, start_id: str | None = None, cycles: int | None = 1) -> None:
@@ -54,6 +56,9 @@ class RoutineEngine:
             current_id = next_id
 
     def save_debug_snapshot(self, label: str) -> None:
+        if not self.debug_screenshots:
+            return
+
         screenshot_path = self.root / "assets" / "screenshots" / "_runtime_interrupt.png"
         capture_window_or_screen(screenshot_path, window=self.window)
         self._save_debug_capture(label, screenshot_path)
@@ -236,6 +241,9 @@ class RoutineEngine:
         return matched
 
     def _save_debug_capture(self, snippet_id: str, source: Path) -> None:
+        if not self.debug_screenshots:
+            return
+
         if not source.exists():
             return
 
