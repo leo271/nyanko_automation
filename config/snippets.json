@@ -178,7 +178,7 @@
         {
           "type": "wait",
           "label": "統率力回復ポップアップ待ち",
-          "seconds": 0.6
+          "seconds": 1.0
         }
       ]
     },
@@ -188,7 +188,9 @@
       "description": "リーダーシップで統率力を全回復する確認ポップアップが表示されているかだけ判定する。",
       "kind": "condition",
       "detect": {
-        "template": "assets/templates/packman/stamina_recover_dialog.png",
+        "templates": [
+          "assets/templates/packman/stamina_recover_heading.png"
+        ],
         "threshold": 0.82,
         "required": false,
         "source_screenshot": "assets/screenshots/stamina_recover_popup.PNG"
