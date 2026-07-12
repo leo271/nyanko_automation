@@ -23,6 +23,10 @@ uv run nyanko-auto doctor
 uv run nyanko-auto windows
 uv run nyanko-auto capture
 uv run nyanko-auto snippets
+uv run nyanko-auto routines
+uv run nyanko-auto run-snippet tap_battle_start
+uv run nyanko-auto run-snippet detect_stamina_recover_popup
+uv run nyanko-auto run-snippet detect_extra_stage
 uv run nyanko-auto run --cycles 1
 ```
 
@@ -30,24 +34,53 @@ uv run nyanko-auto run --cycles 1
 
 ## 周回ループ
 
-周回は `config/snippets.json` のスニペット遷移で制御します。初期状態では以下の順番です。
+周回は `config/snippets.json` の `routines` で制御します。各ルーチンは汎用スニペットを組み合わせた遷移表です。
+
+初期状態では `packman` が既定ルーチンです。
 
 ```text
-check_energy -> start_battle -> deploy_units -> finish_battle -> check_energy
+detect_stamina_recover_available
+-> tap_battle_start
+-> wait_battle_start
+-> wait_initial_money
+-> deploy_unit_slot_4
+-> wait_battle_progress
+-> detect_drop_reward
+-> confirm_battle_result
+-> wait_after_battle_result
+-> detect_extra_stage
+-> return_to_map
+-> detect_stamina_recover_available
 ```
 
-- `check_energy`: 統率力確認&統率力回復
-- `start_battle`: 戦闘開始
-- `deploy_units`: キャラクター出動
-- `finish_battle`: 戦闘終了→マップ帰還
+主な分岐:
+
+- `detect_stamina_recover_available`: true なら `tap_stamina_recover_button` へ、false なら `tap_battle_start` へ
+- `detect_stamina_recover_popup`: true なら `accept_stamina_recover` へ、false なら `tap_battle_start` へ
+- `detect_extra_stage`: true なら `accept_extra_stage` へ、false なら `return_to_map` へ
+- `return_to_map`: 戦闘終了画面の右上ボタンを押してマップへ戻る
+
+座標は iPhone Mirroring ウィンドウ左上を原点にした現在の表示サイズ（ポイント）です。`uv run nyanko-auto capture` の画像で表示サイズを変えた場合は、座標を取り直してください。
+
+各スニペットは、判定だけ、1クリックだけ、待機だけ、のいずれかに寄せています。
+
+別ステージの周回を追加するときは `snippets` の部品を増やすか再利用し、`routines` に新しい `id` / `start` / `transitions` を追加します。
 
 クリック座標や画像テンプレートが未確定のステップは `enabled: false` にしてあります。動作確認しながら `x` / `y` / `template` を埋め、必要なものだけ `enabled: true` にしてください。
 
 実クリックを有効にする場合だけ `--live` を付けます。
 
 ```bash
-uv run nyanko-auto run --cycles 1 --live
+uv run nyanko-auto run-snippet tap_battle_start --live
+uv run nyanko-auto run-snippet return_to_map --repeat 2 --live
+uv run nyanko-auto run --routine packman --cycles 1 --live
 ```
+
+ライブ実行時は `[live] tap x,y` の後ろに、画面上のウィンドウ位置を加えた実座標が表示されます。実座標がミラーリング画面の外なら、設定座標が現在のウィンドウ表示サイズと合っていません。`capture` で現在画像を取り直し、座標はウィンドウ左上基準のポイントで指定します。
+
+スニペット単体の調整中は `run-snippet` を使います。指定したスニペットだけを実行し、次のスニペットには遷移しません。
+
+判定だけを行うスニペットは `kind: "condition"` で定義します。ルーチン側ではその判定結果を `if_result` で受けて遷移を分けます。
 
 ## 次にやること
 

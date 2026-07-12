@@ -32,9 +32,9 @@ class Snippet:
     id: str
     name: str
     description: str
+    kind: str
     detect: dict[str, Any]
     steps: list[Step]
-    next_id: str | None
 
     @classmethod
     def from_dict(cls, raw: dict[str, Any]) -> Snippet:
@@ -47,15 +47,93 @@ class Snippet:
             id=snippet_id,
             name=str(raw.get("name", snippet_id)),
             description=str(raw.get("description", "")),
+            kind=str(raw.get("kind", "action")),
             detect=dict(raw.get("detect", {})),
             steps=steps,
-            next_id=raw.get("next"),
         )
 
 
+@dataclass(frozen=True)
+class Transition:
+    next_id: str | None
+    if_result: bool | None = None
+    label: str = ""
+
+    @classmethod
+    def from_raw(cls, raw: Any) -> Transition:
+        if raw is None or isinstance(raw, str):
+            return cls(next_id=raw)
+
+        data = dict(raw)
+        next_value = data.get("next")
+        return cls(
+            next_id=str(next_value) if next_value is not None else None,
+            if_result=data.get("if_result"),
+            label=str(data.get("label", "")),
+        )
+
+    @property
+    def is_conditional(self) -> bool:
+        return self.if_result is not None
+
+
+@dataclass(frozen=True)
+class RoutineDefinition:
+    id: str
+    name: str
+    description: str
+    start_id: str
+    transitions: dict[str, list[Transition]]
+
+    @classmethod
+    def from_dict(cls, raw: dict[str, Any]) -> RoutineDefinition:
+        routine_id = str(raw.get("id", "")).strip()
+        if not routine_id:
+            raise ValueError("routine.id is required")
+
+        start_id = str(raw.get("start", "")).strip()
+        if not start_id:
+            raise ValueError(f"{routine_id}.start is required")
+
+        transitions = {}
+        for source, target in dict(raw.get("transitions", {})).items():
+            raw_targets = target if isinstance(target, list) else [target]
+            transitions[str(source)] = [Transition.from_raw(item) for item in raw_targets]
+
+        return cls(
+            id=routine_id,
+            name=str(raw.get("name", routine_id)),
+            description=str(raw.get("description", "")),
+            start_id=start_id,
+            transitions=transitions,
+        )
+
+    def transitions_after(self, snippet_id: str) -> list[Transition]:
+        return self.transitions.get(snippet_id, [])
+
+    def preview_next_after(self, snippet_id: str) -> str | None:
+        transitions = self.transitions_after(snippet_id)
+        if not transitions:
+            return None
+
+        for transition in transitions:
+            if not transition.is_conditional:
+                return transition.next_id
+
+        return transitions[0].next_id
+
+
 class SnippetRegistry:
-    def __init__(self, *, start: str, snippets: list[Snippet]) -> None:
-        self.start = start
+    def __init__(
+        self,
+        *,
+        default_routine: str,
+        routines: list[RoutineDefinition],
+        snippets: list[Snippet],
+    ) -> None:
+        self.default_routine = default_routine
+        self._routines = {routine.id: routine for routine in routines}
+        self._routine_order = [routine.id for routine in routines]
         self._snippets = {snippet.id: snippet for snippet in snippets}
         self._order = [snippet.id for snippet in snippets]
         self.validate()
@@ -65,12 +143,16 @@ class SnippetRegistry:
         with path.open("r", encoding="utf-8") as f:
             raw = json.load(f)
 
-        start = str(raw.get("start", "")).strip()
+        default_routine = str(raw.get("default_routine", "")).strip()
+        routines = [RoutineDefinition.from_dict(item) for item in raw.get("routines", [])]
         snippets = [Snippet.from_dict(item) for item in raw.get("snippets", [])]
-        return cls(start=start, snippets=snippets)
+        return cls(default_routine=default_routine, routines=routines, snippets=snippets)
 
     def all(self) -> list[Snippet]:
         return [self._snippets[snippet_id] for snippet_id in self._order]
+
+    def routines(self) -> list[RoutineDefinition]:
+        return [self._routines[routine_id] for routine_id in self._routine_order]
 
     def get(self, snippet_id: str) -> Snippet:
         try:
@@ -78,27 +160,56 @@ class SnippetRegistry:
         except KeyError as exc:
             raise KeyError(f"unknown snippet: {snippet_id}") from exc
 
+    def get_routine(self, routine_id: str | None = None) -> RoutineDefinition:
+        target_id = routine_id or self.default_routine
+        try:
+            return self._routines[target_id]
+        except KeyError as exc:
+            raise KeyError(f"unknown routine: {target_id}") from exc
+
     def validate(self) -> None:
-        if not self.start:
-            raise ValueError("start is required")
-        if self.start not in self._snippets:
-            raise ValueError(f"start snippet is not defined: {self.start}")
+        if not self.default_routine:
+            raise ValueError("default_routine is required")
+        if self.default_routine not in self._routines:
+            raise ValueError(f"default routine is not defined: {self.default_routine}")
 
-        for snippet in self._snippets.values():
-            if snippet.next_id is not None and snippet.next_id not in self._snippets:
-                raise ValueError(f"{snippet.id}.next points to unknown snippet: {snippet.next_id}")
+        for routine in self._routines.values():
+            if routine.start_id not in self._snippets:
+                raise ValueError(
+                    f"{routine.id}.start points to unknown snippet: {routine.start_id}"
+                )
 
-    def preview_cycle(self, *, start_id: str | None = None, limit: int = 12) -> list[str]:
-        current_id = start_id or self.start
+            for source_id, transitions in routine.transitions.items():
+                if source_id not in self._snippets:
+                    raise ValueError(
+                        f"{routine.id}.transitions has unknown snippet: {source_id}"
+                    )
+                for transition in transitions:
+                    target_id = transition.next_id
+                    if target_id is not None and target_id not in self._snippets:
+                        raise ValueError(
+                            f"{routine.id}.transitions.{source_id} points to unknown snippet: "
+                            f"{target_id}"
+                        )
+
+    def preview_cycle(
+        self,
+        *,
+        routine_id: str | None = None,
+        start_id: str | None = None,
+        limit: int = 32,
+    ) -> list[str]:
+        routine = self.get_routine(routine_id)
+        current_id = start_id or routine.start_id
         seen: list[str] = []
 
         for _ in range(limit):
             seen.append(current_id)
-            next_id = self.get(current_id).next_id
+            next_id = routine.preview_next_after(current_id)
             if next_id is None:
                 break
             current_id = next_id
-            if current_id == (start_id or self.start):
+            if current_id == (start_id or routine.start_id):
                 seen.append(current_id)
                 break
 

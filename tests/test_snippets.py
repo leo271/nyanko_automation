@@ -10,16 +10,58 @@ ROOT = Path(__file__).resolve().parents[1]
 def test_default_snippet_cycle() -> None:
     registry = SnippetRegistry.from_path(ROOT / "config" / "snippets.json")
 
-    assert registry.preview_cycle() == [
-        "check_energy",
-        "start_battle",
-        "deploy_units",
-        "finish_battle",
-        "check_energy",
+    assert registry.default_routine == "packman"
+    assert registry.preview_cycle(routine_id="packman") == [
+        "detect_stamina_recover_available",
+        "tap_battle_start",
+        "wait_battle_start",
+        "wait_initial_money",
+        "deploy_unit_slot_4",
+        "wait_battle_progress",
+        "detect_drop_reward",
+        "confirm_battle_result",
+        "wait_after_battle_result",
+        "detect_extra_stage",
+        "return_to_map",
+        "detect_stamina_recover_available",
     ]
 
 
-def test_all_snippets_have_next_transitions() -> None:
+def test_packman_routine_is_registered() -> None:
     registry = SnippetRegistry.from_path(ROOT / "config" / "snippets.json")
+    routine = registry.get_routine("packman")
 
-    assert all(snippet.next_id for snippet in registry.all())
+    assert routine.name == "パックマン周回"
+    assert routine.start_id == "detect_stamina_recover_available"
+    assert routine.transitions["wait_after_battle_result"][0].next_id == "detect_extra_stage"
+
+
+def test_drop_reward_detection_loops_before_result() -> None:
+    registry = SnippetRegistry.from_path(ROOT / "config" / "snippets.json")
+    routine = registry.get_routine("packman")
+
+    transitions = routine.transitions["detect_drop_reward"]
+    assert transitions[0].if_result is True
+    assert transitions[0].next_id == "dismiss_drop_reward"
+    assert transitions[1].next_id == "confirm_battle_result"
+    assert routine.transitions["wait_after_drop_reward"][0].next_id == "detect_drop_reward"
+
+
+def test_stamina_recovery_transition() -> None:
+    registry = SnippetRegistry.from_path(ROOT / "config" / "snippets.json")
+    routine = registry.get_routine("packman")
+    transitions = routine.transitions["detect_stamina_recover_available"]
+
+    assert transitions[0].if_result is True
+    assert transitions[0].next_id == "tap_stamina_recover_button"
+    assert transitions[1].next_id == "tap_battle_start"
+
+
+def test_extra_stage_detection_transition() -> None:
+    registry = SnippetRegistry.from_path(ROOT / "config" / "snippets.json")
+    routine = registry.get_routine("packman")
+    transitions = routine.transitions["detect_extra_stage"]
+
+    assert transitions[0].if_result is True
+    assert transitions[0].next_id == "accept_extra_stage"
+    assert transitions[1].next_id == "return_to_map"

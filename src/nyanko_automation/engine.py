@@ -5,7 +5,7 @@ from typing import Any
 
 from .actions import ActionRunner, Tap
 from .screenshot import capture_window_or_screen
-from .snippets import Snippet, SnippetRegistry, Step
+from .snippets import RoutineDefinition, Snippet, SnippetRegistry, Step, Transition
 from .window import WindowInfo
 
 
@@ -14,37 +14,63 @@ class RoutineEngine:
         self,
         *,
         registry: SnippetRegistry,
+        routine: RoutineDefinition,
         runner: ActionRunner,
         root: Path,
         screenshot_path: Path,
         window: WindowInfo | None = None,
     ) -> None:
         self.registry = registry
+        self.routine = routine
         self.runner = runner
         self.root = root
         self.screenshot_path = screenshot_path
         self.window = window
+        self.snippet_results: dict[str, bool | None] = {}
 
     def run(self, *, start_id: str | None = None, cycles: int | None = 1) -> None:
-        current_id = start_id or self.registry.start
+        current_id = start_id or self.routine.start_id
         completed_cycles = 0
+
+        print(f"[routine] {self.routine.id}: {self.routine.name}")
+        if self.routine.description:
+            print(self.routine.description)
 
         while cycles is None or completed_cycles < cycles:
             snippet = self.registry.get(current_id)
             self.run_snippet(snippet)
 
-            next_id = snippet.next_id
+            next_id = self.next_after(snippet.id)
             if next_id is None:
-                print(f"[stop] {snippet.id} has no next snippet")
+                print(f"[stop] {self.routine.id}.{snippet.id} has no next snippet")
                 return
 
-            if next_id == (start_id or self.registry.start):
+            if next_id == (start_id or self.routine.start_id):
                 completed_cycles += 1
                 print(f"[cycle] completed {completed_cycles}")
 
             current_id = next_id
 
-    def run_snippet(self, snippet: Snippet) -> None:
+    def next_after(self, snippet_id: str) -> str | None:
+        transitions = self.routine.transitions_after(snippet_id)
+        if not transitions:
+            return None
+
+        fallback: Transition | None = None
+        for transition in transitions:
+            if not transition.is_conditional:
+                fallback = transition
+                continue
+
+            if self._transition_matches(snippet_id, transition):
+                return transition.next_id
+
+        if fallback is not None:
+            return fallback.next_id
+
+        return None
+
+    def run_snippet(self, snippet: Snippet) -> bool | None:
         print(f"\n== {snippet.id}: {snippet.name} ==")
         if snippet.description:
             print(snippet.description)
@@ -52,12 +78,24 @@ class RoutineEngine:
         detect = snippet.detect
         if detect:
             template = detect.get("template")
+            color_probe = detect.get("color_probe")
             threshold = detect.get("threshold")
             required = detect.get("required", False)
-            print(f"[detect] template={template} threshold={threshold} required={required}")
+            if color_probe:
+                print(f"[detect] color_probe={color_probe} required={required}")
+            elif template:
+                print(f"[detect] template={template} threshold={threshold} required={required}")
+
+        if snippet.kind == "condition":
+            result = self._evaluate_condition_snippet(snippet)
+            self.snippet_results[snippet.id] = result
+            print(f"[condition] {snippet.id} -> {result}")
+            return result
 
         for step in snippet.steps:
             self.run_step(step)
+        self.snippet_results[snippet.id] = None
+        return None
 
     def run_step(self, step: Step) -> None:
         label = step.label or step.type
@@ -92,6 +130,7 @@ class RoutineEngine:
             y=int(y),
             label=step.label,
             coordinate_space=str(step.data.get("coordinate_space", "window")),
+            duration_seconds=float(step.data.get("duration_seconds", 0.0)),
         )
         self.runner.tap(tap)
 
@@ -119,3 +158,127 @@ class RoutineEngine:
         if path.is_absolute():
             return path
         return self.root / path
+
+    def _transition_matches(self, snippet_id: str, transition: Transition) -> bool:
+        if transition.if_result is None:
+            return False
+
+        result = self.snippet_results.get(snippet_id)
+        matched = result is transition.if_result
+        label = f" ({transition.label})" if transition.label else ""
+        print(
+            f"[transition] result={result} expected={transition.if_result} "
+            f"matched={matched}{label}"
+        )
+        return matched
+
+    def _evaluate_condition_snippet(self, snippet: Snippet) -> bool:
+        color_probe = snippet.detect.get("color_probe")
+        if self.runner.dry_run:
+            target = color_probe or snippet.detect.get("template")
+            print(f"[dry-run] condition check {target} -> false")
+            return False
+
+        if color_probe:
+            return self._evaluate_color_probe(color_probe)
+
+        template = snippet.detect.get("template")
+        if not template:
+            raise ValueError(
+                f"condition snippet requires detect.template or detect.color_probe: {snippet.id}"
+            )
+
+        threshold = float(snippet.detect.get("threshold", 0.88))
+        score, scale, location, size = self._match_template(self._resolve_path(template))
+        matched = score >= threshold
+        print(
+            f"[condition] template={template} score={score:.3f} "
+            f"threshold={threshold:.3f} matched={matched} "
+            f"scale={scale:.2f} location={location[0]},{location[1]} "
+            f"size={size[0]}x{size[1]}"
+        )
+        return matched
+
+    def _match_template(
+        self, template_path: Path
+    ) -> tuple[float, float, tuple[int, int], tuple[int, int]]:
+        import cv2
+
+        screenshot_path = self.root / "assets" / "screenshots" / "_runtime_match.png"
+        capture_window_or_screen(screenshot_path, window=self.window)
+
+        image = cv2.imread(str(screenshot_path), cv2.IMREAD_GRAYSCALE)
+        template = cv2.imread(str(template_path), cv2.IMREAD_GRAYSCALE)
+        if image is None:
+            raise RuntimeError(f"failed to read screenshot: {screenshot_path}")
+        if template is None:
+            raise RuntimeError(f"failed to read template: {template_path}")
+
+        image_height, image_width = image.shape[:2]
+        template_height, template_width = template.shape[:2]
+        best_value = 0.0
+        best_scale = 1.0
+        best_location = (0, 0)
+        best_size = (template_width, template_height)
+        scales = (0.45, 0.48, 0.49, 0.50, 0.51, 0.52, 0.53, 0.54, 0.55, 0.60, 0.65, 0.70, 0.80, 1.0)
+        for scale in scales:
+            width = int(template_width * scale)
+            height = int(template_height * scale)
+            if width < 1 or height < 1 or width > image_width or height > image_height:
+                continue
+
+            resized = cv2.resize(template, (width, height), interpolation=cv2.INTER_AREA)
+            result = cv2.matchTemplate(image, resized, cv2.TM_CCOEFF_NORMED)
+            _, max_value, _, max_location = cv2.minMaxLoc(result)
+            if float(max_value) > best_value:
+                best_value = float(max_value)
+                best_scale = scale
+                best_location = (int(max_location[0]), int(max_location[1]))
+                best_size = (width, height)
+
+        return best_value, best_scale, best_location, best_size
+
+    def _evaluate_color_probe(self, probe: dict[str, Any]) -> bool:
+        from PIL import Image
+
+        screenshot_path = self.root / "assets" / "screenshots" / "_runtime_condition.png"
+        capture_window_or_screen(screenshot_path, window=self.window)
+
+        region = dict(probe["region"])
+        left = int(region["x"])
+        top = int(region["y"])
+        right = left + int(region["width"])
+        bottom = top + int(region["height"])
+
+        image = Image.open(screenshot_path).convert("RGB").crop((left, top, right, bottom))
+        pixels = list(image.getdata())
+        if not pixels:
+            return False
+
+        mode = str(probe.get("mode", "white_ratio"))
+        if mode == "white_ratio":
+            min_rgb = int(probe.get("min_rgb", 170))
+            max_delta = int(probe.get("max_delta", 80))
+            count = sum(
+                1
+                for red, green, blue in pixels
+                if red > min_rgb
+                and green > min_rgb
+                and blue > min_rgb
+                and max(red, green, blue) - min(red, green, blue) < max_delta
+            )
+        elif mode == "green_ratio":
+            count = sum(
+                1 for red, green, blue in pixels if green > 140 and red < 120 and blue < 120
+            )
+        else:
+            raise ValueError(f"unsupported color probe mode: {mode}")
+
+        ratio = count / len(pixels)
+        min_ratio = float(probe.get("min_ratio", 0.05))
+        matched = ratio >= min_ratio
+        print(
+            f"[condition] color_probe mode={mode} ratio={ratio:.4f} "
+            f"threshold={min_ratio:.4f} matched={matched}"
+        )
+        return matched

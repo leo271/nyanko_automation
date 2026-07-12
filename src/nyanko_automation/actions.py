@@ -12,6 +12,7 @@ class Tap:
     y: int
     label: str = ""
     coordinate_space: str = "window"
+    duration_seconds: float = 0.0
 
 
 class ActionRunner:
@@ -35,8 +36,14 @@ class ActionRunner:
 
         import pyautogui
 
-        pyautogui.click(x, y)
+        name = f" ({tap.label})" if tap.label else ""
+        print(f"[live] tap {x},{y}{name}")
+        pyautogui.click(x, y, duration=max(0.0, self._duration(tap)))
         sleep(self.pause_seconds)
+
+    @staticmethod
+    def _duration(tap: Tap) -> float:
+        return tap.duration_seconds
 
     def wait(self, seconds: float, *, label: str = "") -> None:
         name = f" ({label})" if label else ""
@@ -44,6 +51,7 @@ class ActionRunner:
             print(f"[dry-run] wait {seconds:.2f}s{name}")
             return
 
+        print(f"[live] wait {seconds:.2f}s{name}")
         sleep(seconds)
 
     def _resolve_coordinates(self, tap: Tap) -> tuple[int, int]:
