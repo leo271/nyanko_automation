@@ -358,8 +358,9 @@ class RoutineEngine:
         top = int(region["y"])
         right = left + int(region["width"])
         bottom = top + int(region["height"])
+        crop = image.crop((left, top, right, bottom)).resize((400, 160))
         with tempfile.NamedTemporaryFile(suffix=".png") as temp:
-            image.crop((left, top, right, bottom)).save(temp.name)
+            crop.save(temp.name)
             result = subprocess.run(
                 [
                     "tesseract",
