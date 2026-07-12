@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+from datetime import datetime
 from pathlib import Path
+from shutil import copy2
 from typing import Any
 
 from .actions import ActionRunner, Tap
@@ -50,6 +52,11 @@ class RoutineEngine:
                 print(f"[cycle] completed {completed_cycles}")
 
             current_id = next_id
+
+    def save_debug_snapshot(self, label: str) -> None:
+        screenshot_path = self.root / "assets" / "screenshots" / "_runtime_interrupt.png"
+        capture_window_or_screen(screenshot_path, window=self.window)
+        self._save_debug_capture(label, screenshot_path)
 
     def next_after(self, snippet_id: str) -> str | None:
         transitions = self.routine.transitions_after(snippet_id)
@@ -184,7 +191,7 @@ class RoutineEngine:
             return False
 
         if color_probe:
-            return self._evaluate_color_probe(color_probe)
+            return self._evaluate_color_probe(color_probe, snippet.id)
 
         templates = snippet.detect.get("templates")
         threshold = float(snippet.detect.get("threshold", 0.88))
@@ -201,6 +208,10 @@ class RoutineEngine:
                 )
             matched = all(result[0] >= threshold for result in results)
             print(f"[condition] templates matched={matched}")
+            if not matched:
+                self._save_debug_capture(
+                    snippet.id, self.root / "assets/screenshots/_runtime_match.png"
+                )
             return matched
 
         template = snippet.detect.get("template")
@@ -218,7 +229,22 @@ class RoutineEngine:
             f"scale={scale:.2f} location={location[0]},{location[1]} "
             f"size={size[0]}x{size[1]}"
         )
+        if not matched:
+            self._save_debug_capture(
+                snippet.id, self.root / "assets/screenshots/_runtime_match.png"
+            )
         return matched
+
+    def _save_debug_capture(self, snippet_id: str, source: Path) -> None:
+        if not source.exists():
+            return
+
+        debug_dir = self.root / "assets" / "screenshots" / "debug"
+        debug_dir.mkdir(parents=True, exist_ok=True)
+        timestamp = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
+        target = debug_dir / f"{timestamp}_{snippet_id}_false.png"
+        copy2(source, target)
+        print(f"[debug] saved {target}")
 
     def _match_template(
         self, template_path: Path
@@ -259,7 +285,7 @@ class RoutineEngine:
 
         return best_value, best_scale, best_location, best_size
 
-    def _evaluate_color_probe(self, probe: dict[str, Any]) -> bool:
+    def _evaluate_color_probe(self, probe: dict[str, Any], snippet_id: str) -> bool:
         from PIL import Image
 
         screenshot_path = self.root / "assets" / "screenshots" / "_runtime_condition.png"
@@ -302,4 +328,6 @@ class RoutineEngine:
             f"[condition] color_probe mode={mode} ratio={ratio:.4f} "
             f"threshold={min_ratio:.4f} matched={matched}"
         )
+        if not matched:
+            self._save_debug_capture(snippet_id, screenshot_path)
         return matched

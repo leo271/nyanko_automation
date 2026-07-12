@@ -126,7 +126,12 @@ def run(args: argparse.Namespace) -> int:
     if engine is None:
         return 1
 
-    engine.run(start_id=args.start_id, cycles=cycles)
+    try:
+        engine.run(start_id=args.start_id, cycles=cycles)
+    except KeyboardInterrupt:
+        engine.save_debug_snapshot("interrupted")
+        print("[stop] interrupted")
+        return 130
     return 0
 
 
