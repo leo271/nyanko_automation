@@ -123,6 +123,8 @@ class RoutineEngine:
                 print(f"[note] {label}")
             case "tap":
                 self._tap(step)
+            case "move":
+                self._move(step)
             case "wait":
                 seconds = float(step.data.get("seconds", 0))
                 self.runner.wait(seconds, label=label)
@@ -148,6 +150,22 @@ class RoutineEngine:
             duration_seconds=float(step.data.get("duration_seconds", 0.0)),
         )
         self.runner.tap(tap)
+
+    def _move(self, step: Step) -> None:
+        x = step.data.get("x")
+        y = step.data.get("y")
+        if x is None or y is None:
+            print(f"[skip] {step.label}: x/y is not configured")
+            return
+
+        self.runner.move(
+            Tap(
+                x=int(x),
+                y=int(y),
+                label=step.label,
+                coordinate_space=str(step.data.get("coordinate_space", "window")),
+            )
+        )
 
     def _capture(self, step: Step) -> None:
         path_value = step.data.get("path")

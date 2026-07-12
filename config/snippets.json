@@ -2,6 +2,17 @@
   "default_routine": "packman",
   "routines": [
     {
+      "id": "gacha_packman",
+      "name": "パックマンガチャ連打",
+      "description": "ガチャ結果OKと10連ガチャボタンが重なる一点を繰り返しタップする。",
+      "start": "move_to_gacha_overlap",
+      "transitions": {
+        "move_to_gacha_overlap": "tap_gacha_overlap",
+        "tap_gacha_overlap": "wait_after_gacha_tap",
+        "wait_after_gacha_tap": "tap_gacha_overlap"
+      }
+    },
+    {
       "id": "packman",
       "name": "パックマン周回",
       "description": "パックマンステージ用の周回。ステージ選択、統率力回復分岐、戦闘、EX分岐を細かいスニペットで制御する。",
@@ -69,6 +80,57 @@
     }
   ],
   "snippets": [
+    {
+      "id": "move_to_gacha_overlap",
+      "name": "ガチャ連打位置へ移動",
+      "description": "マウスをガチャ連打ポイントへ一度だけ移動する。",
+      "steps": [
+        {
+          "type": "move",
+          "label": "ガチャ連打ポイントへ移動",
+          "enabled": true,
+          "x": 516,
+          "y": 285,
+          "coordinate_space": "window",
+          "source_screenshots": [
+            "assets/screenshots/gatcha_enter.PNG",
+            "assets/screenshots/gatcha_confirm.PNG"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tap_gacha_overlap",
+      "name": "ガチャ重なり位置タップ",
+      "description": "ガチャ結果画面のOK右端と10連ガチャボタン左端が重なる位置を1回タップする。",
+      "steps": [
+        {
+          "type": "tap",
+          "label": "ガチャ連打ポイント",
+          "enabled": true,
+          "x": 516,
+          "y": 285,
+          "duration_seconds": 0.05,
+          "coordinate_space": "window",
+          "source_screenshots": [
+            "assets/screenshots/gatcha_enter.PNG",
+            "assets/screenshots/gatcha_confirm.PNG"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "wait_after_gacha_tap",
+      "name": "ガチャタップ後待機",
+      "description": "ガチャ画面の切り替えを待つ。",
+      "steps": [
+        {
+          "type": "wait",
+          "label": "ガチャ画面遷移待ち",
+          "seconds": 0.0
+        }
+      ]
+    },
     {
       "id": "return_to_map",
       "name": "マップ帰還",

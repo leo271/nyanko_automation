@@ -26,6 +26,16 @@ def test_default_snippet_cycle() -> None:
     ]
 
 
+def test_gacha_routine_repeats_overlap_tap() -> None:
+    registry = SnippetRegistry.from_path(ROOT / "config" / "snippets.json")
+    routine = registry.get_routine("gacha_packman")
+
+    assert routine.start_id == "move_to_gacha_overlap"
+    assert routine.transitions["move_to_gacha_overlap"][0].next_id == "tap_gacha_overlap"
+    assert routine.transitions["tap_gacha_overlap"][0].next_id == "wait_after_gacha_tap"
+    assert routine.transitions["wait_after_gacha_tap"][0].next_id == "tap_gacha_overlap"
+
+
 def test_packman_routine_is_registered() -> None:
     registry = SnippetRegistry.from_path(ROOT / "config" / "snippets.json")
     routine = registry.get_routine("packman")

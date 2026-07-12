@@ -41,6 +41,19 @@ class ActionRunner:
         pyautogui.click(x, y, duration=max(0.0, self._duration(tap)))
         sleep(self.pause_seconds)
 
+    def move(self, tap: Tap) -> None:
+        x, y = self._resolve_coordinates(tap)
+        if self.dry_run:
+            name = f" ({tap.label})" if tap.label else ""
+            print(f"[dry-run] move {x},{y}{name}")
+            return
+
+        import pyautogui
+
+        name = f" ({tap.label})" if tap.label else ""
+        print(f"[live] move {x},{y}{name}")
+        pyautogui.moveTo(x, y, duration=0.1)
+
     @staticmethod
     def _duration(tap: Tap) -> float:
         return tap.duration_seconds

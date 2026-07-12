@@ -74,6 +74,14 @@ detect_stamina_recover_available
 ./scripts/run_packman.sh
 ```
 
+ガチャ連打を開始する場合:
+
+```bash
+uv run nyanko-auto run --routine gacha_packman --forever --live
+```
+
+停止は `Ctrl-C` です。回数を指定して自動停止する場合は、例えば `--cycles 100` を使います。
+
 デバッグ用スクリーンショットが必要な場合だけ、`run` または `run-snippet` に `--debug-screenshots` を付けます。
 
 ```bash
