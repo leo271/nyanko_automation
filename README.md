@@ -45,8 +45,8 @@ detect_stamina_recover_available
 -> wait_initial_money
 -> deploy_unit_slot_4
 -> wait_battle_progress
--> detect_drop_reward
 -> detect_extra_stage
+-> detect_drop_reward
 -> return_to_map
 -> detect_stamina_recover_available
 ```

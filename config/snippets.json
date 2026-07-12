@@ -37,7 +37,7 @@
         "wait_battle_start": "wait_initial_money",
         "wait_initial_money": "deploy_unit_slot_4",
         "deploy_unit_slot_4": "wait_battle_progress",
-        "wait_battle_progress": "detect_drop_reward",
+        "wait_battle_progress": "detect_extra_stage",
         "detect_drop_reward": [
           {
             "label": "報酬表示があれば閉じる",
@@ -46,7 +46,7 @@
           },
           {
             "label": "報酬表示がなければEX判定へ進む",
-            "next": "detect_extra_stage"
+            "next": "return_to_map"
           }
         ],
         "dismiss_drop_reward": "wait_after_drop_reward",
@@ -59,7 +59,7 @@
           },
           {
             "label": "EXステージがなければ通常周回へ戻る",
-            "next": "return_to_map"
+            "next": "detect_drop_reward"
           }
         ],
         "accept_extra_stage": "wait_battle_start",
@@ -287,8 +287,7 @@
       "kind": "condition",
       "detect": {
         "templates": [
-          "assets/templates/packman/drop_reward_top.png",
-          "assets/templates/packman/drop_reward_left.png"
+          "assets/templates/packman/drop_reward_heading.png"
         ],
         "threshold": 0.82,
         "required": false,
@@ -306,7 +305,7 @@
           "label": "ドロップ報酬表示を閉じる",
           "enabled": true,
           "x": 334,
-          "y": 240,
+          "y": 255,
           "duration_seconds": 0.25,
           "coordinate_space": "window",
           "source_screenshot": "assets/screenshots/battle_end_item_gain.PNG"
