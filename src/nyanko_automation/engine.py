@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import re
+import subprocess
+import tempfile
 from datetime import datetime
 from pathlib import Path
 from shutil import copy2
@@ -305,7 +308,8 @@ class RoutineEngine:
         right = left + int(region["width"])
         bottom = top + int(region["height"])
 
-        image = Image.open(screenshot_path).convert("RGB").crop((left, top, right, bottom))
+        full_image = Image.open(screenshot_path).convert("RGB")
+        image = full_image.crop((left, top, right, bottom))
         pixels = list(image.getdata())
         if not pixels:
             return False
@@ -336,6 +340,39 @@ class RoutineEngine:
             f"[condition] color_probe mode={mode} ratio={ratio:.4f} "
             f"threshold={min_ratio:.4f} matched={matched}"
         )
+        max_numeric_value = probe.get("max_numeric_value")
+        if matched and max_numeric_value is not None:
+            value = self._read_numeric_region(full_image, probe["numeric_region"])
+            matched = value is not None and value <= int(max_numeric_value)
+            print(
+                f"[condition] numeric_value={value} "
+                f"max={int(max_numeric_value)} matched={matched}"
+            )
         if not matched:
             self._save_debug_capture(snippet_id, screenshot_path)
         return matched
+
+    @staticmethod
+    def _read_numeric_region(image: Any, region: dict[str, Any]) -> int | None:
+        left = int(region["x"])
+        top = int(region["y"])
+        right = left + int(region["width"])
+        bottom = top + int(region["height"])
+        with tempfile.NamedTemporaryFile(suffix=".png") as temp:
+            image.crop((left, top, right, bottom)).save(temp.name)
+            result = subprocess.run(
+                [
+                    "tesseract",
+                    temp.name,
+                    "stdout",
+                    "--psm",
+                    "7",
+                    "-c",
+                    "tessedit_char_whitelist=0123456789",
+                ],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+        match = re.search(r"\d+", result.stdout)
+        return int(match.group()) if match else None

@@ -137,6 +137,13 @@
           "min_rgb": 170,
           "max_delta": 80,
           "min_ratio": 0.02,
+          "max_numeric_value": 99,
+          "numeric_region": {
+            "x": 1090,
+            "y": 400,
+            "width": 100,
+            "height": 40
+          },
           "source_screenshots": [
             "assets/screenshots/stage_select.PNG",
             "assets/screenshots/stage_select_stamina_white.PNG"
