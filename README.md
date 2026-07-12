@@ -46,8 +46,6 @@ detect_stamina_recover_available
 -> deploy_unit_slot_4
 -> wait_battle_progress
 -> detect_drop_reward
--> confirm_battle_result
--> wait_after_battle_result
 -> detect_extra_stage
 -> return_to_map
 -> detect_stamina_recover_available

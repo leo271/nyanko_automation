@@ -19,8 +19,6 @@ def test_default_snippet_cycle() -> None:
         "deploy_unit_slot_4",
         "wait_battle_progress",
         "detect_drop_reward",
-        "confirm_battle_result",
-        "wait_after_battle_result",
         "detect_extra_stage",
         "return_to_map",
         "wait_after_map_return",
@@ -34,7 +32,6 @@ def test_packman_routine_is_registered() -> None:
 
     assert routine.name == "パックマン周回"
     assert routine.start_id == "detect_stamina_recover_available"
-    assert routine.transitions["wait_after_battle_result"][0].next_id == "detect_extra_stage"
 
 
 def test_drop_reward_detection_loops_before_result() -> None:
@@ -44,7 +41,7 @@ def test_drop_reward_detection_loops_before_result() -> None:
     transitions = routine.transitions["detect_drop_reward"]
     assert transitions[0].if_result is True
     assert transitions[0].next_id == "dismiss_drop_reward"
-    assert transitions[1].next_id == "confirm_battle_result"
+    assert transitions[1].next_id == "detect_extra_stage"
     assert routine.transitions["wait_after_drop_reward"][0].next_id == "detect_drop_reward"
 
 

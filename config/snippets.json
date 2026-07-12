@@ -45,14 +45,12 @@
             "next": "dismiss_drop_reward"
           },
           {
-            "label": "報酬表示がなければ結果確認へ進む",
-            "next": "confirm_battle_result"
+            "label": "報酬表示がなければEX判定へ進む",
+            "next": "detect_extra_stage"
           }
         ],
         "dismiss_drop_reward": "wait_after_drop_reward",
         "wait_after_drop_reward": "detect_drop_reward",
-        "confirm_battle_result": "wait_after_battle_result",
-        "wait_after_battle_result": "detect_extra_stage",
         "detect_extra_stage": [
           {
             "label": "EXステージが出ていたら挑戦する",
@@ -278,7 +276,7 @@
         {
           "type": "wait",
           "label": "戦闘進行待ち",
-          "seconds": 4.5
+          "seconds": 6.0
         }
       ]
     },
@@ -324,35 +322,6 @@
           "type": "wait",
           "label": "報酬表示後の画面安定待ち",
           "seconds": 0.4
-        }
-      ]
-    },
-    {
-      "id": "confirm_battle_result",
-      "name": "戦闘結果OK押下",
-      "description": "戦闘結果画面のOKを1回タップする。",
-      "steps": [
-        {
-          "type": "tap",
-          "label": "OK/次へ",
-          "enabled": true,
-          "x": 334,
-          "y": 315,
-          "duration_seconds": 0.25,
-          "coordinate_space": "window",
-          "source_screenshot": "assets/screenshots/battle_end_2.PNG"
-        }
-      ]
-    },
-    {
-      "id": "wait_after_battle_result",
-      "name": "戦闘結果OK後待機",
-      "description": "戦闘結果OK後、EXステージ判定が可能になるまで待つ。",
-      "steps": [
-        {
-          "type": "wait",
-          "label": "OK後の画面遷移待ち",
-          "seconds": 0.8
         }
       ]
     },
